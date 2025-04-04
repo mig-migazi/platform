@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+  # Redpanda Service
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
     container_name: redpanda
@@ -9,22 +12,28 @@ services:
     environment:
       REDPANDA_MODE: dev-container
     healthcheck:
-      test: ["CMD", "rpk", "cluster", "health"]
+      test: ["CMD", "rpk", "cluster", "info"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
+  # Topic Creator Service
   topic-creator:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
-    volumes:
-      - ./create-topics.sh:/create-topics.sh
+    container_name: topic-creator
     depends_on:
       redpanda:
         condition: service_healthy
+    volumes:
+      - ./create-topics-redpanda.sh:/create-topics.sh
     network_mode: "service:redpanda"
     entrypoint: ["/bin/sh"]
-    command: ["-c", "echo 'Testing rpk connection...'; rpk cluster health; echo 'Running topic creation script...'; /create-topics.sh"]
+    command: ["-c", "echo 'Testing rpk connection...'; rpk cluster info; echo 'Running topic creation script...'; /create-topics.sh; echo 'Topic creation completed. Keeping container alive...'; tail -f /dev/null"]
 
 volumes:
   redpanda_data:
+
+networks:
+  kafka-network:
+    driver: bridge
