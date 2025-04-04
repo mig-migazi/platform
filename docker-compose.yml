@@ -1,0 +1,30 @@
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
+    container_name: redpanda
+    ports:
+      - "9092:9092"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    environment:
+      REDPANDA_MODE: dev-container
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  topic-creator:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
+    volumes:
+      - ./create-topics.sh:/create-topics.sh
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    network_mode: "service:redpanda"
+    entrypoint: ["/bin/sh"]
+    command: ["-c", "echo 'Testing rpk connection...'; rpk cluster health; echo 'Running topic creation script...'; /create-topics.sh"]
+
+volumes:
+  redpanda_data:
