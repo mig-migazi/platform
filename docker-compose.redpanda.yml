@@ -11,25 +11,18 @@ services:
       - redpanda_data:/var/lib/redpanda/data
     environment:
       REDPANDA_MODE: dev-container
-    healthcheck:
-      test: ["CMD", "rpk", "cluster", "info"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      REDPANDA_LOG_LEVEL: error
 
   # Topic Creator Service
   topic-creator:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
     container_name: topic-creator
-    depends_on:
-      redpanda:
-        condition: service_healthy
     volumes:
       - ./create-topics-redpanda.sh:/create-topics.sh
-    network_mode: "service:redpanda"
+    depends_on:
+      - redpanda
     entrypoint: ["/bin/sh"]
-    command: ["-c", "echo 'Testing rpk connection...'; rpk cluster info; echo 'Running topic creation script...'; /create-topics.sh; echo 'Topic creation completed. Keeping container alive...'; tail -f /dev/null"]
+    command: ["-c", "echo 'Waiting for Redpanda to be ready...'; while ! nc -z redpanda 9092; do echo 'Port not ready yet...'; sleep 2; done; echo 'Port is ready, checking cluster...'; until rpk cluster info --brokers=redpanda:9092 > /dev/null 2>&1; do echo 'Cluster not ready yet...'; sleep 2; done; echo 'Redpanda is ready!'; /create-topics.sh"]
 
 volumes:
   redpanda_data:

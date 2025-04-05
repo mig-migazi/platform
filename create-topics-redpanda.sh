@@ -8,11 +8,22 @@ until rpk cluster health > /dev/null 2>&1; do
 done
 echo "Redpanda is ready!"
 
-# Create topics
-echo "Creating topics..."
-rpk topic create iot_messages --partitions 1 --replicas 1
-rpk topic create alarms --partitions 1 --replicas 1
+# Check and create topics if they don't exist
+echo "Checking existing topics..."
+if ! rpk topic describe iot_messages > /dev/null 2>&1; then
+    echo "Creating topic iot_messages..."
+    rpk topic create iot_messages --partitions 1 --replicas 1
+else
+    echo "Topic iot_messages already exists, skipping creation"
+fi
+
+if ! rpk topic describe alarms > /dev/null 2>&1; then
+    echo "Creating topic alarms..."
+    rpk topic create alarms --partitions 1 --replicas 1
+else
+    echo "Topic alarms already exists, skipping creation"
+fi
 
 # List topics
-echo "Topics created:"
+echo "Current topics:"
 rpk topic list 
