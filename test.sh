@@ -31,6 +31,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Clean up any existing containers and networks to prevent port conflicts
+echo "Cleaning up existing containers and networks..."
+if [ "$CLEAN_DATA" = true ]; then
+    docker-compose -f docker-compose.redpanda.yml down -v --remove-orphans
+    docker-compose -f docker-compose.confluent.yml down -v --remove-orphans
+else
+    docker-compose -f docker-compose.redpanda.yml down --remove-orphans
+    docker-compose -f docker-compose.confluent.yml down --remove-orphans
+fi
+docker system prune -f
+
 # Function to test a specific broker type
 test_broker() {
     local broker_type=$1
