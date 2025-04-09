@@ -1,115 +1,134 @@
-# Kafka Platform Setup
+# IoT Telemetry Testing Platform
 
-This repository contains configurations for setting up both Redpanda and Confluent Platform (Kafka) with KRaft mode.
+A platform for testing IoT telemetry message production using either Redpanda or Confluent Kafka.
+
+## Features
+
+- React-based UI for test configuration and monitoring
+- Real-time test progress visualization
+- Support for both Redpanda and Confluent Kafka
+- Telemetry and alarm message simulation
+- Topic message count monitoring
+- Docker-based deployment
 
 ## Prerequisites
 
 - Docker
 - Docker Compose
 
-## Available Configurations
+## Components
 
-### 1. Redpanda
+### 1. Frontend (React)
+- Material-UI components
+- Real-time updates using Server-Sent Events
+- Test configuration and monitoring interface
+- Topic message count display
+
+### 2. Backend (Node.js)
+- Express server
+- KafkaJS for Kafka integration
+- Message generation and publishing
+- Topic management
+
+### 3. Message Brokers
+#### Redpanda
 A lightweight, Kafka-compatible streaming platform.
+- Configuration: `docker-compose.redpanda.yml`
+- Environment: `redpanda-config.env`
+- Topic management: `manage-redpanda-topics.sh`
 
-Configuration file: `docker-compose.redpanda.yml`
+#### Confluent Platform (Kafka)
+A full-featured Kafka distribution with KRaft mode.
+- Configuration: `docker-compose.confluent.yml`
+- Environment: `confluent-config.env`
+- Topic management: `manage-confluent-topics.sh`
 
-### 2. Confluent Platform (Kafka)
-A full-featured Kafka distribution with KRaft mode (no ZooKeeper required).
+## Setup and Usage
 
-Configuration file: `docker-compose.confluent.yml`
-
-## Testing
-
-A test script is provided to verify both setups. The script will:
-1. Start the services
-2. Create the required topics
-3. Verify the topics are created correctly
-4. Test message production and consumption
-
-To run the tests:
+1. Choose your message broker:
 
 ```bash
-# Test both Redpanda and Confluent Platform with clean data (default)
-./test.sh
-
-# Test only Redpanda with clean data
-./test.sh --redpanda-only
-
-# Test only Confluent Platform with clean data
-./test.sh --confluent-only
-
-# Test while preserving existing data
-./test.sh --keep-data
-```
-
-### Data Persistence
-
-By default, the test script will delete all data volumes when starting up. This ensures a clean state for testing. However, you can preserve data between runs using the `--keep-data` flag:
-
-- Without `--keep-data`: All data is deleted when services are stopped
-- With `--keep-data`: Data is preserved between runs
-
-This is useful when you want to:
-- Start fresh for each test run (default)
-- Preserve messages and topics between runs
-- Test data persistence scenarios
-
-## Topics
-
-Both configurations create the following topics:
-- `iot_messages` (1 partition, 1 replica)
-- `alarms` (1 partition, 1 replica)
-
-The topic creation scripts will:
-- Check if topics already exist
-- Only create topics that don't exist
-- Preserve existing topics and their data
-
-## Manual Testing
-
-If you want to test a specific configuration manually:
-
-### Redpanda
-```bash
-# Start the services with clean data
-docker-compose -f docker-compose.redpanda.yml down -v
+# For Redpanda
 docker-compose -f docker-compose.redpanda.yml up -d
 
-# Start the services preserving existing data
-docker-compose -f docker-compose.redpanda.yml down
-docker-compose -f docker-compose.redpanda.yml up -d
-
-# Check topics
-docker exec redpanda rpk topic list
-docker exec redpanda rpk topic describe iot_messages alarms
-
-# Clean up (with or without -v to preserve/delete data)
-docker-compose -f docker-compose.redpanda.yml down [-v]
+# For Confluent Kafka
+docker-compose -f docker-compose.confluent.yml up -d
 ```
 
-### Confluent Platform
+2. Create required topics:
+
 ```bash
-# Start the services with clean data
-docker-compose -f docker-compose.confluent.yml down -v
-docker-compose -f docker-compose.confluent.yml up -d
+# For Redpanda
+./manage-redpanda-topics.sh create
 
-# Start the services preserving existing data
-docker-compose -f docker-compose.confluent.yml down
-docker-compose -f docker-compose.confluent.yml up -d
-
-# Check topics
-docker exec broker kafka-topics --bootstrap-server localhost:9092 --list
-docker exec broker kafka-topics --bootstrap-server localhost:9092 --describe
-
-# Clean up (with or without -v to preserve/delete data)
-docker-compose -f docker-compose.confluent.yml down [-v]
+# For Confluent Kafka
+./manage-confluent-topics.sh create
 ```
+
+3. Start the backend:
+
+```bash
+docker run -d --name iot-platform-backend \
+  --network platform_kafka-network \
+  -p 3001:3001 \
+  -e BROKER_TYPE=confluent \
+  iot-platform-backend
+```
+
+4. Start the frontend:
+
+```bash
+docker run -d --name iot-platform-frontend \
+  --network platform_kafka-network \
+  -p 3000:3000 \
+  -e REACT_APP_API_URL=http://your-host:3001 \
+  iot-platform-frontend
+```
+
+5. Access the UI at `http://localhost:3000`
+
+## Test Configuration
+
+The platform supports two types of test messages:
+
+### 1. Telemetry Messages
+- Temperature: 20-30°C
+- Humidity: 40-60%
+- Pressure: 1000-1020 hPa
+- Battery: 80-100%
+
+### 2. Alarm Messages
+- Severity: 1-3
+- Error Code: 100-200
+
+## Topic Management
+
+Use the management scripts to:
+- Create topics: `./manage-*-topics.sh create`
+- List topics: `./manage-*-topics.sh list`
+- Delete topics: `./manage-*-topics.sh delete`
+
+## Development
+
+### Building the Images
+
+```bash
+# Build frontend
+cd frontend && docker build -t iot-platform-frontend .
+
+# Build backend
+cd backend && docker build -t iot-platform-backend .
+```
+
+### Environment Variables
+
+#### Backend
+- `BROKER_TYPE`: Type of broker ('redpanda' or 'confluent')
+- `PORT`: Server port (default: 3001)
+
+#### Frontend
+- `REACT_APP_API_URL`: Backend API URL
 
 ## Networking
 
-Both configurations use Docker's internal networking:
-- Redpanda: Uses `network_mode: "service:redpanda"` for the topic-creator service
-- Confluent Platform: Uses `network_mode: "service:broker"` for the topic-creator service
-
-This ensures that services can communicate using their container names, which is important for remote deployments.
+All components use Docker's `platform_kafka-network` network for communication. The frontend communicates with the backend using the configured API URL, and the backend communicates with the message broker using the appropriate configuration for the selected broker type.
