@@ -28,6 +28,13 @@ logs/
 .env.test.local
 .env.production.local
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

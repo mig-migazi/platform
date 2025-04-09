@@ -6,23 +6,28 @@ services:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
     container_name: redpanda
     ports:
-      - "9092:9092"
+      - "${REDPANDA_BROKER_PORT:-9092}:9092"
+      - "${REDPANDA_ADMIN_PORT:-9644}:9644"
     volumes:
       - redpanda_data:/var/lib/redpanda/data
     environment:
       REDPANDA_MODE: dev-container
       REDPANDA_LOG_LEVEL: error
-
-  # Topic Creator Service
-  topic-creator:
-    image: docker.redpanda.com/redpandadata/redpanda:v23.2.11
-    container_name: topic-creator
-    volumes:
-      - ./create-topics-redpanda.sh:/create-topics.sh
-    depends_on:
-      - redpanda
-    entrypoint: ["/bin/sh"]
-    command: ["-c", "echo 'Waiting for Redpanda to be ready...'; while ! nc -z redpanda 9092; do echo 'Port not ready yet...'; sleep 2; done; echo 'Port is ready, checking cluster...'; until rpk cluster info --brokers=redpanda:9092 > /dev/null 2>&1; do echo 'Cluster not ready yet...'; sleep 2; done; echo 'Redpanda is ready!'; /create-topics.sh"]
+      REDPANDA_KAFKA_ADDRESS: "PLAINTEXT://0.0.0.0:${REDPANDA_BROKER_PORT:-9092}"
+      REDPANDA_ADVERTISED_KAFKA_API: "PLAINTEXT://redpanda:${REDPANDA_BROKER_PORT:-9092}"
+      REDPANDA_RPC_SERVER: "PLAINTEXT://0.0.0.0:33145"
+      REDPANDA_ADVERTISED_RPC_API: "PLAINTEXT://redpanda:33145"
+      REDPANDA_ADMIN_API_PORT: "${REDPANDA_ADMIN_PORT:-9644}"
+    env_file:
+      - redpanda.env
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
 volumes:
   redpanda_data:
