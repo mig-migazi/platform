@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  connector-creator:
+    build:
+      context: ..
+      dockerfile: kafka/Dockerfile.connector-creator
+    container_name: connector-creator
+    networks:
+      - kafka-network
+    environment:
+      - CONNECT_URL=http://connect:8083
+      - CONNECTOR_CONFIG=/kafka-connect/iot-messages-sink.json
+    volumes:
+      - ../kafka-connect:/kafka-connect
+    restart: on-failure:3
+
+networks:
+  kafka-network:
+    name: platform_kafka-network 

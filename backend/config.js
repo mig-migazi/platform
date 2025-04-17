@@ -1,10 +1,11 @@
 const config = {
     kafka: {
-        brokerType: process.env.BROKER_TYPE || 'redpanda',
-        bootstrapServers: process.env.BROKER_TYPE === 'confluent' ? 'kafka:9092' : 'redpanda:9092',
+        brokerType: process.env.BROKER_TYPE || 'confluent',
+        bootstrapServers: process.env.KAFKA_BOOTSTRAP_SERVERS || 'kafka:9092',
+        schemaRegistry: process.env.KAFKA_SCHEMA_REGISTRY_URL || (process.env.BROKER_TYPE === 'confluent' ? 'http://schema-registry:8081' : 'http://localhost:8081'),
         topics: {
             telemetry: 'iot_messages',
-            alarms: 'alarms'
+            alarms: 'iot_alarms'
         },
         // Common Kafka configuration
         clientId: 'iot-platform-backend',

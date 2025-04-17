@@ -1,0 +1,15 @@
+FROM confluentinc/cp-kafka:7.5.0
+
+USER root
+
+# Copy the topic management script
+COPY scripts/manage-confluent-topics.sh /app/
+RUN chmod +x /app/manage-confluent-topics.sh
+
+# Set working directory
+WORKDIR /app
+
+USER appuser
+
+# Set the entrypoint
+ENTRYPOINT ["/app/manage-confluent-topics.sh", "create"] 

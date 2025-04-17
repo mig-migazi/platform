@@ -1,81 +1,40 @@
 import React from 'react';
-import { Typography, Box, Button, Paper } from '@mui/material';
+import { Box, FormControl, InputLabel, Select, MenuItem, Typography } from '@mui/material';
 
-export type MessageType = 'telemetry' | 'alarm';
-
-export interface TelemetryConfig {
-  minTemperature: number;
-  maxTemperature: number;
-  minHumidity: number;
-  maxHumidity: number;
-  minPressure: number;
-  maxPressure: number;
-  minBattery: number;
-  maxBattery: number;
-}
-
-export interface AlarmConfig {
-  minSeverity: number;
-  maxSeverity: number;
-  minCode: number;
-  maxCode: number;
-}
+export type MessageType = 'telemetry' | 'alarms';
 
 interface MessageConfigProps {
   messageType: MessageType;
   onMessageTypeChange: (type: MessageType) => void;
 }
 
-const MessageConfig = ({
-  messageType,
-  onMessageTypeChange,
-}: MessageConfigProps) => {
-  const telemetryRanges = {
-    Temperature: '20-30°C',
-    Humidity: '40-60%',
-    Pressure: '1000-1020 hPa',
-    Battery: '80-100%'
-  };
-
-  const alarmRanges = {
-    Severity: '1-3',
-    'Error Code': '100-200'
-  };
-
+const MessageConfig: React.FC<MessageConfigProps> = ({ messageType, onMessageTypeChange }) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <Button
-          variant={messageType === 'telemetry' ? 'contained' : 'outlined'}
-          onClick={() => onMessageTypeChange('telemetry')}
+    <Box>
+      <Typography variant="subtitle1" gutterBottom>
+        Message Type
+      </Typography>
+      <FormControl fullWidth variant="outlined">
+        <InputLabel id="message-type-label">Message Type</InputLabel>
+        <Select
+          labelId="message-type-label"
+          value={messageType}
+          onChange={(e) => onMessageTypeChange(e.target.value as MessageType)}
+          label="Message Type"
         >
-          Telemetry
-        </Button>
-        <Button
-          variant={messageType === 'alarm' ? 'contained' : 'outlined'}
-          onClick={() => onMessageTypeChange('alarm')}
-        >
-          Alarm
-        </Button>
-      </Box>
-
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          {messageType === 'telemetry' ? 'Telemetry Ranges' : 'Alarm Ranges'}
+          <MenuItem value="telemetry">Telemetry</MenuItem>
+          <MenuItem value="alarms">Alarms</MenuItem>
+        </Select>
+      </FormControl>
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          {messageType === 'telemetry' ? (
+            'Telemetry messages include temperature, humidity, pressure, and battery readings.'
+          ) : (
+            'Alarm messages include severity and error code information.'
+          )}
         </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-          {Object.entries(messageType === 'telemetry' ? telemetryRanges : alarmRanges).map(([key, value]) => (
-            <Box key={key} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                {key}:
-              </Typography>
-              <Typography variant="body2">
-                {value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      </Paper>
+      </Box>
     </Box>
   );
 };

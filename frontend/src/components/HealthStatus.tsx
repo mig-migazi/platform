@@ -3,12 +3,12 @@ import { Card, CardContent, Typography, List, ListItem, ListItemIcon, ListItemTe
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import CircularProgress from '@mui/material/CircularProgress';
+import StorageIcon from '@mui/icons-material/Storage';
 
 interface HealthStatusProps {
   health: {
     status: 'healthy' | 'error';
-    kafka: 'connected' | 'disconnected';
-    broker: string;
+    database: 'connected' | 'disconnected';
   } | null;
   error: string | null;
 }
@@ -25,11 +25,6 @@ const HealthStatus: React.FC<HealthStatusProps> = ({ health, error }) => {
   if (!health) {
     return <CircularProgress />;
   }
-
-  const getBrokerName = (type: string | undefined) => {
-    if (!type) return 'Unknown';
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  };
 
   return (
     <Card>
@@ -53,15 +48,15 @@ const HealthStatus: React.FC<HealthStatusProps> = ({ health, error }) => {
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              {health.kafka === 'connected' ? (
+              {health.database === 'connected' ? (
                 <CheckCircleIcon sx={{ color: 'success.main' }} />
               ) : (
                 <ErrorIcon sx={{ color: 'error.main' }} />
               )}
             </ListItemIcon>
             <ListItemText 
-              primary="Message Broker"
-              secondary={`${health.kafka === 'connected' ? 'Connected' : 'Disconnected'} (${getBrokerName(health.broker)})`}
+              primary="TimescaleDB"
+              secondary={health.database === 'connected' ? 'Connected' : 'Disconnected'}
             />
           </ListItem>
         </List>

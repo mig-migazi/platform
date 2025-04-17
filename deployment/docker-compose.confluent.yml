@@ -1,0 +1,189 @@
+version: '3.8'
+
+services:
+  broker:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "${CONFLUENT_BROKER_PORT:-9092}:9092"
+      - "${CONFLUENT_ADMIN_PORT:-9021}:9021"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KAFKA_ZOOKEEPER_CONNECT: ""
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    user: appuser:appuser
+    command: >
+      bash -c "
+        mkdir -p /var/lib/kafka/data &&
+        chown -R appuser:appuser /var/lib/kafka/data &&
+        /etc/confluent/docker/run
+      "
+    networks:
+      - platform_kafka-network
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  topic-creator:
+    build:
+      context: ../deployment
+      dockerfile: dockerfiles/Dockerfile.topic-creator
+    container_name: topic-creator
+    depends_on:
+      broker:
+        condition: service_healthy
+    networks:
+      - platform_kafka-network
+    environment:
+      - CONFLUENT_TOPICS=${CONFLUENT_TOPICS:-iot_messages,alarms}
+      - CONFLUENT_PARTITIONS=${CONFLUENT_PARTITIONS:-1}
+      - CONFLUENT_REPLICATION_FACTOR=${CONFLUENT_REPLICATION_FACTOR:-1}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - RETRY_DELAY=${RETRY_DELAY:-5}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+    entrypoint: /app/manage-confluent-topics.sh create
+    volumes: []
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "${CONFLUENT_SCHEMA_REGISTRY_PORT:-8081}:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    networks:
+      - platform_kafka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  schema-registration:
+    build:
+      context: ../deployment/schemas
+      dockerfile: Dockerfile
+    container_name: schema-registration
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    networks:
+      - platform_kafka-network
+    environment:
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    volumes:
+      - ../deployment/schemas:/schemas
+
+  connect:
+    image: confluentinc/cp-kafka-connect:7.5.0
+    container_name: connect
+    depends_on:
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_GROUP_ID: connect-cluster
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components,/usr/share/kafka-connect-plugins"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_REST_PORT: 8083
+      CONNECT_REST_HOST_NAME: connect
+    networks:
+      - platform_kafka-network
+    volumes:
+      - connect_plugins:/usr/share/confluent-hub-components
+      - ./scripts:/connect
+      - ./kafka-connect-plugins:/usr/share/kafka-connect-plugins
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/connectors"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    entrypoint: ["/connect/setup-connect.sh"]
+
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.5.0
+    container_name: rest-proxy
+    depends_on:
+      - broker
+      - schema-registry
+    ports:
+      - "${CONFLUENT_REST_PROXY_PORT:-8082}:8082"
+    environment:
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      KAFKA_REST_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8082
+    networks:
+      - platform_kafka-network
+
+  connector-creator:
+    build:
+      context: ../deployment
+      dockerfile: dockerfiles/Dockerfile.connector-creator
+    container_name: connector-creator
+    depends_on:
+      connect:
+        condition: service_healthy
+    networks:
+      - platform_kafka-network
+    volumes:
+      - ./kafka-connect:/kafka-connect
+    environment:
+      - CONNECT_URL=http://connect:8083
+      - MAX_RETRIES=30
+      - RETRY_DELAY=5
+    restart: on-failure:3
+
+volumes:
+  kafka_data:
+    driver: local
+  connect_plugins:
+    driver: local
+    name: connect_plugins
+
+networks:
+  platform_kafka-network:
+    name: platform_kafka-network
+    driver: bridge 

@@ -1,0 +1,26 @@
+{
+  "name": "alarms-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    "topics": "alarms",
+    "connection.url": "jdbc:postgresql://timescaledb:5432/iot_platform",
+    "connection.user": "postgres",
+    "connection.password": "postgres",
+    "auto.create": "false",
+    "auto.evolve": "false",
+    "insert.mode": "insert",
+    "table.name.format": "alarms",
+    "pk.mode": "none",
+    "fields.whitelist": "time,device_id,severity,error_code,description",
+    "transforms": "timestamp",
+    "transforms.timestamp.type": "org.apache.kafka.connect.transforms.TimestampConverter$Value",
+    "transforms.timestamp.target.type": "Timestamp",
+    "transforms.timestamp.field": "time",
+    "transforms.timestamp.format": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+} 

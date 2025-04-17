@@ -1,0 +1,53 @@
+{
+    "type": "record",
+    "name": "IotMessage",
+    "namespace": "com.platform.iot",
+    "doc": "Schema for IoT device messages - Version 1",
+    "version": "v1",
+    "schemaType": "iot_messages",
+    "fields": [
+        {
+            "name": "timestamp",
+            "type": "long",
+            "doc": "Message timestamp in milliseconds since epoch"
+        },
+        {
+            "name": "id",
+            "type": "string",
+            "doc": "Unique identifier of the IoT device"
+        },
+        {
+            "name": "temperature",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Temperature reading in Celsius"
+        },
+        {
+            "name": "humidity",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Relative humidity percentage"
+        },
+        {
+            "name": "pressure",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Atmospheric pressure in hPa"
+        },
+        {
+            "name": "battery",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Battery level percentage"
+        },
+        {
+            "name": "metadata",
+            "type": {
+                "type": "map",
+                "values": "string"
+            },
+            "doc": "Additional metadata about the measurement",
+            "default": {}
+        }
+    ]
+} 

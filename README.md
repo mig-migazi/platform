@@ -1,134 +1,138 @@
-# IoT Telemetry Testing Platform
+# IoT Platform
 
-A platform for testing IoT telemetry message production using either Redpanda or Confluent Kafka.
+A scalable IoT platform for processing and visualizing IoT device messages and alarms using modern cloud-native technologies.
 
-## Features
+## Architecture
 
-- React-based UI for test configuration and monitoring
-- Real-time test progress visualization
-- Support for both Redpanda and Confluent Kafka
-- Telemetry and alarm message simulation
-- Topic message count monitoring
-- Docker-based deployment
+The platform consists of the following components:
+
+### Backend Services
+- **Kafka**: Message broker for handling IoT messages and alarms
+- **Schema Registry**: Manages Avro schemas for message validation
+- **Kafka Connect**: Handles data integration with TimescaleDB
+- **TimescaleDB**: Time-series database for storing IoT data
+- **Node.js Backend**: REST API service for managing the platform
+
+### Frontend
+- **React Application**: Modern web interface for monitoring and testing
+- Built with Material-UI for a clean, responsive design
+- Real-time updates using Server-Sent Events (SSE)
 
 ## Prerequisites
 
-- Docker
-- Docker Compose
+- Docker and Docker Compose
+- Node.js 20.x (for local development)
+- npm 10.x (for local development)
+
+## Quick Start
+
+1. Extract the platform package to your desired location:
+   ```bash
+   unzip platform.zip
+   cd platform
+   ```
+
+2. Start the platform services (Kafka, TimescaleDB, etc.):
+   ```bash
+   ./deployment/scripts/start-platform.sh
+   ```
+
+   This script will:
+   - Start Kafka and Schema Registry
+   - Initialize TimescaleDB
+   - Register schemas
+   - Create Kafka topics
+   - Configure Kafka Connect
+
+3. Start the application services (backend and frontend):
+   ```bash
+   ./deployment/scripts/start-app.sh
+   ```
+
+4. Access the web interface at http://localhost:3000
+
+### Optional Flags
+
+Both startup scripts support the `--keep-data` flag to preserve existing data:
+```bash
+./deployment/scripts/start-platform.sh --keep-data
+./deployment/scripts/start-app.sh --keep-data
+```
 
 ## Components
 
-### 1. Frontend (React)
-- Material-UI components
-- Real-time updates using Server-Sent Events
-- Test configuration and monitoring interface
-- Topic message count display
+### Backend (Node.js)
+- REST API for platform management
+- Kafka producer/consumer integration
+- Schema Registry integration
+- TimescaleDB connection management
+- Test message generation
+- Health monitoring
 
-### 2. Backend (Node.js)
-- Express server
-- KafkaJS for Kafka integration
-- Message generation and publishing
-- Topic management
+Endpoints:
+- `GET /api/health`: Platform health status
+- `GET /api/topic-counts`: Message counts in Kafka topics
+- `GET /api/database-counts`: Record counts in TimescaleDB
+- `POST /api/test`: Start a test message generation
+- `GET /api/test-progress`: SSE endpoint for test progress
+- `POST /api/test-alarm`: Generate a test alarm message
 
-### 3. Message Brokers
-#### Redpanda
-A lightweight, Kafka-compatible streaming platform.
-- Configuration: `docker-compose.redpanda.yml`
-- Environment: `redpanda-config.env`
-- Topic management: `manage-redpanda-topics.sh`
+### Frontend (React)
+- Real-time monitoring dashboard
+- Test message generation interface
+- Health status monitoring
+- Message count visualization
 
-#### Confluent Platform (Kafka)
-A full-featured Kafka distribution with KRaft mode.
-- Configuration: `docker-compose.confluent.yml`
-- Environment: `confluent-config.env`
-- Topic management: `manage-confluent-topics.sh`
+Components:
+- `HealthStatus`: Shows platform component health
+- `MessageCounts`: Displays message counts from Kafka and TimescaleDB
+- `TestProgress`: Controls and monitors test message generation
 
-## Setup and Usage
+### Data Storage
+- **TimescaleDB**:
+  - `iot_messages`: Stores IoT device telemetry
+  - `alarms`: Stores device alarm events
 
-1. Choose your message broker:
-
-```bash
-# For Redpanda
-docker-compose -f docker-compose.redpanda.yml up -d
-
-# For Confluent Kafka
-docker-compose -f docker-compose.confluent.yml up -d
-```
-
-2. Create required topics:
-
-```bash
-# For Redpanda
-./manage-redpanda-topics.sh create
-
-# For Confluent Kafka
-./manage-confluent-topics.sh create
-```
-
-3. Start the backend:
-
-```bash
-docker run -d --name iot-platform-backend \
-  --network platform_kafka-network \
-  -p 3001:3001 \
-  -e BROKER_TYPE=confluent \
-  iot-platform-backend
-```
-
-4. Start the frontend:
-
-```bash
-docker run -d --name iot-platform-frontend \
-  --network platform_kafka-network \
-  -p 3000:3000 \
-  -e REACT_APP_API_URL=http://your-host:3001 \
-  iot-platform-frontend
-```
-
-5. Access the UI at `http://localhost:3000`
-
-## Test Configuration
-
-The platform supports two types of test messages:
-
-### 1. Telemetry Messages
-- Temperature: 20-30°C
-- Humidity: 40-60%
-- Pressure: 1000-1020 hPa
-- Battery: 80-100%
-
-### 2. Alarm Messages
-- Severity: 1-3
-- Error Code: 100-200
-
-## Topic Management
-
-Use the management scripts to:
-- Create topics: `./manage-*-topics.sh create`
-- List topics: `./manage-*-topics.sh list`
-- Delete topics: `./manage-*-topics.sh delete`
+### Message Schemas
+- IoT Messages Schema (Avro)
+- Alarm Messages Schema (Avro)
 
 ## Development
 
-### Building the Images
+### Local Development Setup
 
+1. Backend:
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+
+2. Frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**: Ensure ports 3000, 3001, 8081, 8082, 8083, 9092, and 5432 are available
+2. **Container Issues**: Try running with `--keep-data` flag to preserve existing data
+3. **Network Issues**: Ensure Docker network `platform_kafka-network` is created
+
+### Logs
+
+Check container logs for specific services:
 ```bash
-# Build frontend
-cd frontend && docker build -t iot-platform-frontend .
-
-# Build backend
-cd backend && docker build -t iot-platform-backend .
+docker logs backend
+docker logs frontend
+docker logs kafka
+docker logs timescaledb
 ```
 
-### Environment Variables
+## License
 
-#### Backend
-- `BROKER_TYPE`: Type of broker ('redpanda' or 'confluent')
-- `PORT`: Server port (default: 3001)
-
-#### Frontend
-- `REACT_APP_API_URL`: Backend API URL
-
-## Networking
-
-All components use Docker's `platform_kafka-network` network for communication. The frontend communicates with the backend using the configured API URL, and the backend communicates with the message broker using the appropriate configuration for the selected broker type.
+[Your License Here]

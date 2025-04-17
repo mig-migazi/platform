@@ -3,19 +3,20 @@ import { Container, Typography, Box, Paper } from '@mui/material';
 import TestConfig from './components/TestConfig';
 import HealthStatus from './components/HealthStatus';
 import TestProgress from './components/TestProgress';
-import TopicCounts from './components/TopicCounts';
+import MessageCounts from './components/MessageCounts';
 
 interface IHealthStatus {
   status: 'healthy' | 'error';
   kafka: 'connected' | 'disconnected';
+  database: 'connected' | 'disconnected';
   broker: string;
+  testRunning: boolean;
 }
 
 function App() {
-  const [brokerType, setBrokerType] = useState<string>('');
   const [health, setHealth] = useState<IHealthStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const apiUrl = process.env.REACT_APP_API_URL || '';
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -23,9 +24,6 @@ function App() {
         const response = await fetch(`${apiUrl}/api/health`);
         const data = await response.json();
         setHealth(data);
-        if (data.broker) {
-          setBrokerType(data.broker.toLowerCase());
-        }
         setError(null);
       } catch (err) {
         console.error('Health check failed:', err);
@@ -55,9 +53,7 @@ function App() {
         }}>
           <Box sx={{ flex: 1, width: '100%' }}>
             <Paper sx={{ p: 3 }}>
-              <TestConfig 
-                brokerType={brokerType}
-              />
+              <TestConfig />
             </Paper>
           </Box>
           <Box sx={{ flex: 1, width: '100%' }}>
@@ -67,7 +63,7 @@ function App() {
             <Paper sx={{ p: 3 }}>
               <TestProgress apiUrl={apiUrl} />
             </Paper>
-            <TopicCounts apiUrl={apiUrl} />
+            <MessageCounts apiUrl={apiUrl} />
           </Box>
         </Box>
       </Box>

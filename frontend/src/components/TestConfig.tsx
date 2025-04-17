@@ -9,19 +9,11 @@ import {
   Alert,
   Snackbar,
   Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid
 } from '@mui/material';
 import MessageConfig, { MessageType } from './MessageConfig';
 
-interface TestConfigProps {
-  brokerType: string;
-}
-
-const TestConfig: React.FC<TestConfigProps> = ({ brokerType }) => {
+const TestConfig: React.FC = () => {
   const [messageType, setMessageType] = useState<MessageType>('telemetry');
   const [messagesPerSecond, setMessagesPerSecond] = useState<number>(10);
   const [durationSeconds, setDurationSeconds] = useState<number>(60);
@@ -49,7 +41,6 @@ const TestConfig: React.FC<TestConfigProps> = ({ brokerType }) => {
         body: JSON.stringify({
           messagesPerSecond,
           durationSeconds,
-          brokerType,
           messageConfig: {
             type: messageType
           }
@@ -77,20 +68,6 @@ const TestConfig: React.FC<TestConfigProps> = ({ brokerType }) => {
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="broker-type-label">Broker Type</InputLabel>
-                <Select
-                  labelId="broker-type-label"
-                  value={brokerType}
-                  disabled
-                  label="Broker Type"
-                >
-                  <MenuItem value="redpanda">Redpanda</MenuItem>
-                  <MenuItem value="confluent">Confluent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Messages per Second"
@@ -120,25 +97,27 @@ const TestConfig: React.FC<TestConfigProps> = ({ brokerType }) => {
             onMessageTypeChange={setMessageType}
           />
 
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleStartTest}
-            disabled={isLoading}
-            sx={{ mt: 2 }}
-          >
-            {isLoading ? 'Starting Test...' : 'Start Test'}
-          </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleStartTest}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Starting...' : 'Start Test'}
+            </Button>
+          </Box>
         </Box>
       </CardContent>
-      <Snackbar 
-        open={!!notification} 
-        autoHideDuration={6000} 
+
+      <Snackbar
+        open={!!notification}
+        autoHideDuration={6000}
         onClose={() => setNotification(null)}
       >
-        <Alert 
-          onClose={() => setNotification(null)} 
-          severity={notification?.type} 
+        <Alert
+          onClose={() => setNotification(null)}
+          severity={notification?.type}
           sx={{ width: '100%' }}
         >
           {notification?.message}

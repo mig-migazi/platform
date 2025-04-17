@@ -1,0 +1,30 @@
+{
+    "type": "record",
+    "name": "AlarmMessage",
+    "namespace": "com.platform.iot",
+    "doc": "Schema for IoT device alarms - Version 1",
+    "fields": [
+        {
+            "name": "timestamp",
+            "type": "long",
+            "doc": "Alarm timestamp in milliseconds since epoch"
+        },
+        {
+            "name": "id",
+            "type": "string",
+            "doc": "Unique identifier of the IoT device"
+        },
+        {
+            "name": "severity",
+            "type": "int",
+            "doc": "Severity level of the alarm (1-3)"
+        },
+        {
+            "name": "errorCode",
+            "type": "int",
+            "doc": "Numeric code identifying the type of alarm"
+        }
+    ],
+    "version": "v1",
+    "schemaType": "iot_alarms"
+} 
