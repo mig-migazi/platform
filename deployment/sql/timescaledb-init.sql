@@ -80,8 +80,7 @@ CREATE TABLE IF NOT EXISTS alarms (
     timestamp TIMESTAMPTZ NOT NULL,
     device_id TEXT NOT NULL,
     severity INTEGER,
-    error_code INTEGER,
-    description TEXT
+    error_code INTEGER
 );
 
 -- Convert to hypertable

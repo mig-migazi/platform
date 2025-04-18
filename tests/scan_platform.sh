@@ -86,7 +86,7 @@ if curl -s http://localhost:8083 > /dev/null; then
     
     # Check configured connectors
     echo -e "\nConfigured connectors:"
-    expected_connectors=("iot-messages-sink" "iot-alarms-sink")
+    expected_connectors=("jdbc-sink-iot" "jdbc-sink-alarms")
     connectors=$(curl -s http://localhost:8083/connectors)
     for connector in "${expected_connectors[@]}"; do
         if echo "$connectors" | jq -e ".[] | select(. == \"$connector\")" > /dev/null; then

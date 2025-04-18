@@ -20,7 +20,7 @@ REPLICATION_FACTOR=${CONFLUENT_REPLICATION_FACTOR:-1}
 # Function to check if a topic exists
 topic_exists() {
     local topic=$1
-    kafka-topics --bootstrap-server kafka:9092 --describe --topic "$topic" > /dev/null 2>&1
+    kafka-topics --bootstrap-server kafka:9092 --list | grep -q "^${topic}$"
     return $?
 }
 

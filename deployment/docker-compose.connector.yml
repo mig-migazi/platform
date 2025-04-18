@@ -10,7 +10,7 @@ services:
       - kafka-network
     environment:
       - CONNECT_URL=http://connect:8083
-      - CONNECTOR_CONFIG=/kafka-connect/iot-messages-sink.json
+      - CONNECTOR_CONFIG=/kafka-connect/jdbc-sink-iot.json;/kafka-connect/jdbc-sink-alarms.json
     volumes:
       - ../kafka-connect:/kafka-connect
     restart: on-failure:3

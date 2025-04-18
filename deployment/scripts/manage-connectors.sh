@@ -97,7 +97,7 @@ wait_for_service "Kafka Connect" "${CONNECT_URL}/connectors" || exit 1
 echo "Configuring connectors..."
 
 # Create IoT Messages connector
-create_or_update_connector "kafka-connect/iot-messages-sink.json" || exit 1
+create_or_update_connector "kafka-connect/jdbc-sink-iot.json" || exit 1
 
 # Create Alarms connector
 create_or_update_connector "kafka-connect/jdbc-sink-alarms.json" || exit 1
@@ -107,7 +107,7 @@ echo "Connectors configured successfully"
 # Keep monitoring connector status
 while true; do
     echo "Checking connector status..."
-    for name in "iot-messages-sink" "iot-alarms-sink"; do
+    for name in $(curl -s "${CONNECT_URL}/connectors" | jq -r '.[]'); do
         status=$(curl -s "${CONNECT_URL}/connectors/${name}/status" | jq -r '.connector.state')
         echo "Connector ${name} status: ${status}"
         if [ "$status" != "RUNNING" ]; then
