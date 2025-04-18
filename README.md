@@ -10,6 +10,8 @@ The platform consists of the following components:
 - **Kafka**: Message broker for handling IoT messages and alarms
 - **Schema Registry**: Manages Avro schemas for message validation
 - **Kafka Connect**: Handles data integration with TimescaleDB
+  - JDBC Sink Connector for IoT Messages
+  - JDBC Sink Connector for Alarms with timestamp conversion
 - **TimescaleDB**: Time-series database for storing IoT data
 - **Node.js Backend**: REST API service for managing the platform
 
@@ -42,7 +44,7 @@ The platform consists of the following components:
    - Initialize TimescaleDB
    - Register schemas
    - Create Kafka topics
-   - Configure Kafka Connect
+   - Configure Kafka Connect with proper timestamp handling
 
 3. Start the application services (backend and frontend):
    ```bash
@@ -91,11 +93,31 @@ Components:
 ### Data Storage
 - **TimescaleDB**:
   - `iot_messages`: Stores IoT device telemetry
+    - Timestamp (TIMESTAMPTZ)
+    - Device ID
+    - Temperature, Humidity, Pressure, Battery
+    - Metadata (JSONB)
   - `alarms`: Stores device alarm events
+    - Timestamp (TIMESTAMPTZ)
+    - Device ID
+    - Severity
+    - Error Code
 
 ### Message Schemas
 - IoT Messages Schema (Avro)
 - Alarm Messages Schema (Avro)
+
+### Kafka Connect Configuration
+- **JDBC Sink Connector for IoT Messages**:
+  - Handles IoT device telemetry data
+  - Direct mapping to TimescaleDB table
+  - Error handling with dead letter queue
+
+- **JDBC Sink Connector for Alarms**:
+  - Handles alarm events
+  - Includes timestamp conversion from Unix milliseconds to TIMESTAMPTZ
+  - Field renaming for database compatibility
+  - Error handling with dead letter queue
 
 ## Development
 
@@ -122,6 +144,7 @@ Components:
 1. **Port Conflicts**: Ensure ports 3000, 3001, 8081, 8082, 8083, 9092, and 5432 are available
 2. **Container Issues**: Try running with `--keep-data` flag to preserve existing data
 3. **Network Issues**: Ensure Docker network `platform_kafka-network` is created
+4. **Timestamp Issues**: If alarms are not being stored, check the Kafka Connect logs for timestamp conversion errors
 
 ### Logs
 
@@ -131,6 +154,7 @@ docker logs backend
 docker logs frontend
 docker logs kafka
 docker logs timescaledb
+docker logs connect  # For Kafka Connect issues
 ```
 
 ## License
